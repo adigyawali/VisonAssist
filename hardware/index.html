@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>SAVVIP — Live Distances</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Arial;margin:18px}
+    .row{display:flex;gap:16px;flex-wrap:wrap}
+    .card{border:1px solid #ddd;border-radius:12px;padding:16px;min-width:220px}
+    .big{font-size:28px;font-weight:700}
+    button{padding:10px 14px;border-radius:10px;border:1px solid #ccc;background:#fafafa;cursor:pointer}
+    .ok{color:#2e7d32}.warn{color:#d32f2f}
+  </style>
+</head>
+<body>
+  <h2>SAVVIP — Live Distances</h2>
+
+  <div class="row">
+    <div class="card"><div>Forward</div><div id="fwd" class="big">--</div></div>
+    <div class="card"><div>Downward</div><div id="down" class="big">--</div></div>
+    <div class="card"><div>Status</div><div id="status" class="big warn">Disconnected</div></div>
+  </div>
+  <br/>
+
+  <button id="connectBtn">Connect BLE</button>
+
+<script>
+const SERVICE_UUID = '12345678-1234-1234-1234-1234567890ab';
+const CHAR_UUID     = '12345678-1234-1234-1234-1234567890ac';
+
+// set to true if you need to manually choose from all devices
+const USE_ACCEPT_ALL = false;
+
+document.getElementById('connectBtn').onclick = async ()=>{
+  try{
+    let options = {
+      filters: [{ services: [SERVICE_UUID] }],
+      optionalServices: [SERVICE_UUID]
+    };
+    if (USE_ACCEPT_ALL) {
+      options = { acceptAllDevices: true, optionalServices: [SERVICE_UUID] };
+    }
+
+    const device = await navigator.bluetooth.requestDevice(options);
+    const server = await device.gatt.connect();
+    const svc = await server.getPrimaryService(SERVICE_UUID);
+    const ch  = await svc.getCharacteristic(CHAR_UUID);
+
+    ch.addEventListener('characteristicvaluechanged', e=>{
+      const dv  = e.target.value || new DataView(new ArrayBuffer(0));
+      const txt = new TextDecoder().decode(dv);
+      const [fStr, dStr] = txt.split(',');
+      const f = parseInt(fStr);
+      const d = parseInt(dStr);
+
+      document.getElementById('fwd').textContent  = isNaN(f) ? '--' : `${f} cm`;
+      document.getElementById('down').textContent = isNaN(d) ? '--' : `${d} cm`;
+
+      let status = 'Clear', ok = true;
+      if (!isNaN(f) && f <= 150) { status = 'Obstacle'; ok=false; }
+      if (!isNaN(d) && d >= 60)  { status = 'Step down'; ok=false; }
+      const s = document.getElementById('status');
+      s.textContent = status; s.className = 'big ' + (ok ? 'ok':'warn');
+    });
+
+    await ch.startNotifications();
+
+    const s = document.getElementById('status');
+    s.textContent = 'Connected'; s.className = 'big ok';
+
+    device.addEventListener('gattserverdisconnected', ()=>{
+      const s = document.getElementById('status');
+      s.textContent = 'Disconnected'; s.className = 'big warn';
+      document.getElementById('fwd').textContent='--';
+      document.getElementById('down').textContent='--';
+    });
+
+  }catch(err){
+    const s = document.getElementById('status');
+    s.textContent = 'Error: ' + err.message; s.className = 'big warn';
+    console.error(err);
+  }
+};
+</script>
+</body>
+</html>

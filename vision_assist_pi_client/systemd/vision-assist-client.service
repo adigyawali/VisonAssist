@@ -1,0 +1,16 @@
+
+[Unit]
+Description=Vision Assist Pi Client
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/vision_assist_pi_client
+ExecStart=/home/pi/vision_assist_pi_client/.venv/bin/python sender.py
+Restart=always
+RestartSec=2
+User=pi
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

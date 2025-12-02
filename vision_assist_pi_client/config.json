@@ -1,0 +1,10 @@
+{
+  "ws_url": "wss://vision-assist.layne-pitman.com/cameye",
+  "width": 640,
+  "height": 480,
+  "fps": 10,
+  "jpeg_quality": 60,
+  "aruco_check": true,
+  "aruco_dict": "DICT_5X5_100",
+  "aruco_warn_after_missing": 10
+}
